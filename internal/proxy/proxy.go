@@ -8,8 +8,8 @@ import (
 	"time"
 	"strings"
 
-	"github.com/jhead/phantom/internal/clientmap"
-	"github.com/jhead/phantom/internal/proto"
+	"github.com/kirbo/phantom/internal/clientmap"
+	"github.com/kirbo/phantom/internal/proto"
 	"github.com/rs/zerolog/log"
 	"github.com/tevino/abool"
 
@@ -214,6 +214,10 @@ func (proxy *ProxyServer) processDataFromClients(listener net.PacketConn, packet
 		excluded.clients = make(map[string]bool)
 	}
 
+	if allowProxy(clientAddress) {
+		excluded.clients[clientAddress] = false
+	}
+	
 	if !excluded.clients[clientAddress] || excluded.clients[clientAddress] != true {
 		serverConn, err := proxy.clientMap.Get(
 			client,

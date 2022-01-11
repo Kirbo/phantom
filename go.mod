@@ -1,4 +1,4 @@
-module github.com/jhead/phantom
+module github.com/kirbo/phantom
 
 go 1.12
 

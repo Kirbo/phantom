@@ -1,4 +1,4 @@
-[![Downloads](https://img.shields.io/github/downloads/jhead/phantom/total)](https://github.com/jhead/phantom/releases) [![Gitter](https://badges.gitter.im/phantom-minecraft/community.svg)](https://gitter.im/phantom-minecraft/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Downloads](https://img.shields.io/github/downloads/kirbo/phantom/total)](https://github.com/kirbo/phantom/releases) [![Gitter](https://badges.gitter.im/phantom-minecraft/community.svg)](https://gitter.im/phantom-minecraft/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 # phantom
 
@@ -12,7 +12,7 @@ It's like having a LAN server that's not actually there, spooky.
 
 phantom is a command line application with no GUI (yet). See the usage section below.
 
-[Download](https://github.com/jhead/phantom/releases) phantom from the releases page.
+[Download](https://github.com/kirbo/phantom/releases) phantom from the releases page.
 
 **macOS / Linux**
 
@@ -68,13 +68,13 @@ Same as above but bind to a specific local IP:
 ```
 
 Same as above but bind the proxy server to port 19133:
-   
+
 ```bash
 ./phantom-<os> -bind_port 19133 -server lax.mcbr.cubed.host:19132
 ```
 
 Same as above but bind the proxy server to local IP 10.0.0.5 and port 19133:
-   
+
 ```bash
 ./phantom-<os> -bind 10.0.0.5 -bind_port 19133 -server lax.mcbr.cubed.host:19132
 ```
@@ -107,7 +107,7 @@ It can be useful if you are behind a firewall or using Docker and want to open o
 necessary ports to phantom. Note that you'll always need to open port 19132 in addition
 to the bind port for phantom to work.
 
-This flag can be used with or without the `-bind` flag. 
+This flag can be used with or without the `-bind` flag.
 Default value is 0, which means a random port will be used.
 
 ## Building
@@ -150,10 +150,11 @@ your Windows Firewall settings and open up all UDP ports for phantom.
 
 **My server isn't showing up on the list but it's online and phantom is showing connections!**
 
-Make sure "Visible to LAN players" is turn **ON** in your server's settings: *(below shows setting OFF)*
+Make sure "Visible to LAN players" is turn **ON** in your server's settings: _(below shows setting OFF)_
 
 <img src="https://user-images.githubusercontent.com/42201487/81394390-25f5c200-9122-11ea-83ba-a24eea96c83b.png" width=350 />
 
 More info:
-- https://github.com/jhead/phantom/issues/80#issuecomment-625737070
-- https://github.com/jhead/phantom/issues/29#issuecomment-612808296
+
+- https://github.com/kirbo/phantom/issues/80#issuecomment-625737070
+- https://github.com/kirbo/phantom/issues/29#issuecomment-612808296

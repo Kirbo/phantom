@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/jhead/phantom/internal/proxy"
+	"github.com/kirbo/phantom/internal/proxy"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
