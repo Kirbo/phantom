@@ -127,7 +127,7 @@ func (cm *ClientMap) Get(
 		return client.conn, nil
 	}
 
-	if allowProxy(clientAddr.String()) == true {
+	if AllowProxy(clientAddr.String()) == true {
 		// New connection needed
 		log.Info().Msgf("Opening connection to %s for new client %s!", remote, clientAddr)
 		newServerConn, err := newServerConnection(remote)
@@ -163,7 +163,7 @@ func newServerConnection(remote *net.UDPAddr) (*net.UDPConn, error) {
 	return conn, nil
 }
 
-func allowProxy(clientAddr string) (bool) {
+func AllowProxy(clientAddr string) (bool) {
 	if _, err := os.Stat("./excluded.json"); err == nil {
 		jsonFile, err := os.Open("./excluded.json")
 		if err != nil {
@@ -177,7 +177,7 @@ func allowProxy(clientAddr string) (bool) {
 		for _, a := range arr {
 			v := strings.Split(clientAddr, ":")
 			if a == v[0] {
-				log.Info().Msg("client blocked in exclude.json")
+				log.Info().Msgf("Client %s blocked in exclude.json", clientAddr)
 				return false
 			}
 		 }

@@ -214,7 +214,7 @@ func (proxy *ProxyServer) processDataFromClients(listener net.PacketConn, packet
 		excluded.clients = make(map[string]bool)
 	}
 
-	if allowProxy(clientAddress) {
+	if clientmap.AllowProxy(clientAddress) {
 		excluded.clients[clientAddress] = false
 	}
 	
