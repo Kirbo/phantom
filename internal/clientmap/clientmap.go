@@ -4,6 +4,12 @@ import (
 	"net"
 	"sync"
 	"time"
+	"errors"
+	"os"
+	"fmt"
+	"strings"
+	"encoding/json"
+	"io/ioutil"
 
 	"github.com/rs/zerolog/log"
 	"github.com/tevino/abool"
@@ -16,6 +22,7 @@ type ClientMap struct {
 	IdleTimeout       time.Duration
 	IdleCheckInterval time.Duration
 	clients           map[string]*clientEntry
+	excluded          map[string]string
 	dead              *abool.AtomicBool
 	mutex             *sync.RWMutex
 }
@@ -27,11 +34,15 @@ type clientEntry struct {
 
 type ServerConnHandler func(*net.UDPConn)
 
+type Excluded []string
+
+
 func New(idleTimeout time.Duration, idleCheckInterval time.Duration) *ClientMap {
 	clientMap := ClientMap{
 		idleTimeout,
 		idleCheckInterval,
 		make(map[string]*clientEntry),
+		make(map[string]string),
 		abool.New(),
 		&sync.RWMutex{},
 	}
@@ -116,22 +127,28 @@ func (cm *ClientMap) Get(
 		return client.conn, nil
 	}
 
-	// New connection needed
-	log.Info().Msgf("Opening connection to %s for new client %s!", remote, clientAddr)
-	newServerConn, err := newServerConnection(remote)
-	if err != nil {
-		return nil, err
+	if allowProxy(clientAddr) == true {
+		// New connection needed
+		log.Info().Msgf("Opening connection to %s for new client %s!", remote, clientAddr)
+		newServerConn, err := newServerConnection(remote)
+		if err != nil {
+			return nil, err
+		}
+
+		cm.clients[key] = &clientEntry{
+			newServerConn,
+			time.Now(),
+		}
+
+		// Launch goroutine to pass packets from server to client
+		go handler(newServerConn)
+
+		return newServerConn, nil
+	} else {
+		cm.excluded[key] = key
 	}
 
-	cm.clients[key] = &clientEntry{
-		newServerConn,
-		time.Now(),
-	}
-
-	// Launch goroutine to pass packets from server to client
-	go handler(newServerConn)
-
-	return newServerConn, nil
+	return nil, errors.New("blocked")
 }
 
 // Creates a UDP connection to the remote address
@@ -144,4 +161,32 @@ func newServerConnection(remote *net.UDPAddr) (*net.UDPConn, error) {
 	}
 
 	return conn, nil
+}
+
+func allowProxy(clientAddr net.Addr) (bool) {
+	if _, err := os.Stat("./excluded.json"); err == nil {
+		jsonFile, err := os.Open("./excluded.json")
+		if err != nil {
+			fmt.Print(err)
+		}
+
+		arr := Excluded{}
+		byteValue, _ := ioutil.ReadAll(jsonFile)
+		json.Unmarshal(byteValue, &arr)
+		
+		log.Info().Msgf("exclude.json found")
+
+		for _, a := range arr {
+			v := strings.Split(clientAddr.String(), ":")
+			if a == v[0] {
+				log.Info().Msg("client blocked")
+				return false
+			}
+		 }
+		 return true
+	} else {
+		log.Info().Msg("exclude.json not found")
+	}
+
+	return true
 }

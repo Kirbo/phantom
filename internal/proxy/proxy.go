@@ -6,6 +6,7 @@ import (
 	"net"
 	"regexp"
 	"time"
+	"strings"
 
 	"github.com/jhead/phantom/internal/clientmap"
 	"github.com/jhead/phantom/internal/proto"
@@ -18,6 +19,10 @@ import (
 const maxMTU = 1472
 
 var idleCheckInterval = 5 * time.Second
+
+type Excluded struct {
+	clients          map[string]bool
+}
 
 type ProxyServer struct {
 	bindAddress         *net.UDPAddr
@@ -45,6 +50,7 @@ type ProxyPrefs struct {
 var randSource = rand.NewSource(time.Now().UnixNano())
 var serverID = randSource.Int63()
 var offlineErrorRegex = regexp.MustCompile("(timeout)|(connection refused)")
+var excluded = Excluded{}
 
 func New(prefs ProxyPrefs) (*ProxyServer, error) {
 	bindPort := prefs.BindPort
@@ -201,36 +207,51 @@ func (proxy *ProxyServer) processDataFromClients(listener net.PacketConn, packet
 		proxy.processDataFromServer(newServerConn, client)
 	}
 
-	serverConn, err := proxy.clientMap.Get(
-		client,
-		proxy.remoteServerAddress,
-		onNewConnection,
-	)
+	v := strings.Split(client.String(), ":")
+	clientAddress := v[0]
 
-	if err != nil {
-		return err
+	if excluded.clients == nil {
+		excluded.clients = make(map[string]bool)
 	}
 
-	// Wait 5 seconds for the server to respond to whatever we sent, or else timeout
-	_ = serverConn.SetReadDeadline(time.Now().Add(time.Second * 5))
+	if !excluded.clients[clientAddress] || excluded.clients[clientAddress] != true {
+		serverConn, err := proxy.clientMap.Get(
+			client,
+			proxy.remoteServerAddress,
+			onNewConnection,
+		)
 
-	if packetID := data[0]; packetID == proto.UnconnectedPingID {
-		log.Info().Msgf("Received LAN ping from client: %s", client.String())
-
-		if proxy.serverOffline {
-			replyBuffer := proto.OfflinePong
-			replyBytes := proxy.rewriteUnconnectedPong(replyBuffer.Bytes())
-
-			proxy.server.WriteTo(replyBytes, client)
-			log.Info().Msgf("Sent server offline pong to client: %v", client.String())
+		if err != nil {
+			if err.Error() == "blocked" {
+				log.Warn().Msgf("Connection from client %v is blocked", client.String())
+				excluded.clients[clientAddress] = true
+			}
+			return err
 		}
 
-		// Pass ping through to server even if it's offline
-	}
+		// Wait 5 seconds for the server to respond to whatever we sent, or else timeout
+		_ = serverConn.SetReadDeadline(time.Now().Add(time.Second * 5))
 
-	// Write packet from client to server
-	_, err = serverConn.Write(data)
-	return err
+		if packetID := data[0]; packetID == proto.UnconnectedPingID {
+			log.Info().Msgf("Received LAN ping from client: %s", client.String())
+
+			if proxy.serverOffline {
+				replyBuffer := proto.OfflinePong
+				replyBytes := proxy.rewriteUnconnectedPong(replyBuffer.Bytes())
+
+				proxy.server.WriteTo(replyBytes, client)
+				log.Info().Msgf("Sent server offline pong to client: %v", client.String())
+			}
+
+			// Pass ping through to server even if it's offline
+		}
+
+		// Write packet from client to server
+		_, err = serverConn.Write(data)
+		return err
+	} else {
+		return nil
+	}
 }
 
 // Proxies packets sent by the server to us for a specific Minecraft client back to
